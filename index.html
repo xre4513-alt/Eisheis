@@ -3,17 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Mesh Messenger - Offline Chat</title>
+    <title>P2P Chat - WiFi Messenger</title>
     <style>
-        :root {
-            --primary: #6C63FF;
-            --secondary: #FF6584;
-            --dark: #1a1a2e;
-            --light: #16213e;
-            --text: #e0e0e0;
-            --glass: rgba(255, 255, 255, 0.05);
-        }
-
         * {
             margin: 0;
             padding: 0;
@@ -21,264 +12,290 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        :root {
+            --bg: #0d1117;
+            --surface: #161b22;
+            --border: #30363d;
+            --primary: #58a6ff;
+            --green: #3fb950;
+            --red: #f85149;
+            --text: #c9d1d9;
+            --text-secondary: #8b949e;
+        }
+
         body {
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background: var(--dark);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
             color: var(--text);
             height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             overflow: hidden;
-            user-select: none;
         }
 
         .app {
+            width: 100%;
             max-width: 450px;
-            margin: 0 auto;
             height: 100vh;
             display: flex;
             flex-direction: column;
-            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+            background: var(--bg);
+            position: relative;
         }
 
         /* Header */
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 15px 20px;
+            background: var(--surface);
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 4px 20px rgba(108, 99, 255, 0.3);
-            z-index: 10;
         }
 
         .header-left h1 {
-            font-size: 20px;
-            font-weight: 700;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--primary);
         }
 
         .header-left .subtitle {
             font-size: 11px;
-            opacity: 0.8;
+            color: var(--text-secondary);
+            margin-top: 2px;
         }
 
-        .status-dot {
-            width: 12px;
-            height: 12px;
-            background: #4ade80;
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            background: #1a1f2e;
+            padding: 6px 12px;
+            border-radius: 20px;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
-            animation: pulse 2s infinite;
-            box-shadow: 0 0 10px #4ade80;
+            background: var(--red);
         }
 
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+        .status-indicator.connected {
+            background: var(--green);
+            box-shadow: 0 0 8px var(--green);
         }
 
-        .status-dot.offline {
-            background: #ef4444;
-            box-shadow: 0 0 10px #ef4444;
+        /* Setup Screen */
+        .setup-screen {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            gap: 20px;
         }
 
-        /* Main Content */
-        .main-content {
+        .setup-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .setup-card h2 {
+            font-size: 16px;
+            margin-bottom: 15px;
+            color: var(--primary);
+        }
+
+        .setup-card p {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 6px 0;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: #238636;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2ea043;
+        }
+
+        .btn-secondary {
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-danger {
+            background: #da3633;
+            color: white;
+        }
+
+        .input {
+            width: 100%;
+            padding: 12px;
+            background: #0d1117;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 14px;
+            outline: none;
+            margin: 8px 0;
+        }
+
+        .input:focus {
+            border-color: var(--primary);
+        }
+
+        .info-box {
+            background: #1a1f2e;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 12px;
+            word-break: break-all;
+            margin: 10px 0;
+            color: var(--primary);
+        }
+
+        /* Chat Screen */
+        .chat-screen {
             flex: 1;
             display: flex;
             flex-direction: column;
             overflow: hidden;
         }
 
-        /* Tabs */
-        .tabs {
-            display: flex;
-            background: var(--light);
-            border-bottom: 2px solid #2a2a4a;
-        }
-
-        .tab {
-            flex: 1;
-            padding: 12px;
-            text-align: center;
-            color: #888;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
-            font-size: 14px;
-        }
-
-        .tab.active {
-            color: var(--primary);
-            border-bottom: 3px solid var(--primary);
-        }
-
-        /* Messages */
         .messages-area {
             flex: 1;
             overflow-y: auto;
-            padding: 15px;
+            padding: 16px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 8px;
         }
 
-        .message {
-            max-width: 75%;
-            padding: 12px 16px;
-            border-radius: 20px;
-            position: relative;
-            animation: slideIn 0.3s ease;
+        .msg {
+            max-width: 80%;
+            padding: 10px 14px;
+            border-radius: 16px;
             word-break: break-word;
+            animation: slideIn 0.2s ease;
+            position: relative;
         }
 
         @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
-        .message.sent {
+        .msg.sent {
             align-self: flex-end;
-            background: linear-gradient(135deg, var(--primary), #764ba2);
+            background: #1f6feb;
             color: white;
-            border-bottom-right-radius: 5px;
+            border-bottom-right-radius: 4px;
         }
 
-        .message.received {
+        .msg.received {
             align-self: flex-start;
-            background: #2a2a4a;
-            color: #e0e0e0;
-            border-bottom-left-radius: 5px;
-            border-left: 3px solid var(--secondary);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-bottom-left-radius: 4px;
         }
 
-        .message .sender {
+        .msg .sender {
             font-size: 11px;
-            font-weight: 700;
+            font-weight: 600;
+            color: #58a6ff;
             margin-bottom: 4px;
-            opacity: 0.8;
         }
 
-        .message .time {
+        .msg .time {
             font-size: 10px;
             opacity: 0.6;
-            margin-top: 5px;
+            margin-top: 4px;
             text-align: right;
+        }
+
+        .system-msg {
+            text-align: center;
+            font-size: 11px;
+            color: var(--text-secondary);
+            padding: 6px;
+            background: #1a1f2e;
+            border-radius: 12px;
+            align-self: center;
+            max-width: 90%;
         }
 
         /* Input Area */
         .input-area {
-            padding: 15px;
-            background: var(--light);
+            padding: 12px;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
             display: flex;
-            gap: 10px;
-            align-items: flex-end;
-            border-top: 2px solid #2a2a4a;
+            gap: 8px;
         }
 
         .input-area input {
             flex: 1;
-            padding: 12px 18px;
-            border: 2px solid #2a2a4a;
-            border-radius: 25px;
-            background: #1a1a2e;
-            color: white;
+            padding: 12px 16px;
+            background: #0d1117;
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            color: var(--text);
             font-size: 14px;
             outline: none;
-            transition: border 0.3s;
         }
 
         .input-area input:focus {
             border-color: var(--primary);
         }
 
-        .input-area input::placeholder {
-            color: #666;
-        }
-
         .send-btn {
-            width: 48px;
-            height: 48px;
+            width: 44px;
+            height: 44px;
             border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            background: #238636;
             border: none;
             color: white;
-            font-size: 20px;
+            font-size: 18px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: transform 0.2s, box-shadow 0.2s;
-            box-shadow: 0 4px 15px rgba(108, 99, 255, 0.4);
+            transition: all 0.2s;
         }
 
         .send-btn:active {
             transform: scale(0.9);
-        }
-
-        /* Peer List */
-        .peers-section {
-            padding: 15px;
-            background: var(--light);
-            border-top: 2px solid #2a2a4a;
-        }
-
-        .peers-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-
-        .peers-header h3 {
-            font-size: 14px;
-            color: #888;
-        }
-
-        .scan-btn {
-            padding: 6px 15px;
-            background: #2a2a4a;
-            color: white;
-            border: none;
-            border-radius: 15px;
-            cursor: pointer;
-            font-size: 12px;
-            transition: background 0.3s;
-        }
-
-        .scan-btn:hover {
-            background: var(--primary);
-        }
-
-        .peer-chips {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            max-height: 60px;
-            overflow-y: auto;
-        }
-
-        .peer-chip {
-            padding: 6px 14px;
-            background: #1a1a2e;
-            border-radius: 20px;
-            font-size: 12px;
-            cursor: pointer;
-            border: 2px solid transparent;
-            transition: all 0.3s;
-            white-space: nowrap;
-        }
-
-        .peer-chip:hover {
-            border-color: var(--primary);
-        }
-
-        .peer-chip.selected {
-            background: var(--primary);
-            border-color: var(--primary);
+            background: #2ea043;
         }
 
         /* Toast */
@@ -287,10 +304,10 @@
             top: 20px;
             left: 50%;
             transform: translateX(-50%);
-            padding: 12px 25px;
-            background: #2a2a4a;
-            color: white;
-            border-radius: 25px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 10px 20px;
+            border-radius: 20px;
             font-size: 13px;
             z-index: 100;
             opacity: 0;
@@ -302,11 +319,26 @@
             opacity: 1;
         }
 
-        .no-peers {
-            text-align: center;
-            color: #666;
-            font-size: 12px;
-            padding: 10px;
+        .hidden {
+            display: none !important;
+        }
+
+        .peers-bar {
+            background: #1a1f2e;
+            padding: 8px 16px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .online-badge {
+            background: #238636;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
         }
     </style>
 </head>
@@ -315,44 +347,58 @@
         <!-- Header -->
         <div class="header">
             <div class="header-left">
-                <h1>📡 Mesh Chat</h1>
-                <span class="subtitle">Offline P2P Messenger</span>
+                <h1>⚡ P2P Chat</h1>
+                <div class="subtitle">Local WiFi Messenger</div>
             </div>
-            <div class="status-dot" id="statusDot" title="Network Status"></div>
+            <div class="connection-status">
+                <div class="status-indicator" id="statusDot"></div>
+                <span id="statusText">Disconnected</span>
+            </div>
         </div>
 
-        <!-- Main Content -->
-        <div class="main-content">
-            <!-- Tabs -->
-            <div class="tabs">
-                <div class="tab active" onclick="switchTab('chat')">💬 Chat</div>
-                <div class="tab" onclick="switchTab('peers')">🔍 Find Peers</div>
-                <div class="tab" onclick="switchTab('info')">ℹ️ Info</div>
+        <!-- Setup Screen -->
+        <div class="setup-screen" id="setupScreen">
+            <div class="setup-card">
+                <h2>🖥️ Create Server</h2>
+                <p>Dono phones same WiFi/Hotspot pe hone chahiye. Ek phone server banayega, dusra connect karega.</p>
+                <button class="btn btn-primary" onclick="createServer()">
+                    🔌 Create Server (Host)
+                </button>
+                <div class="info-box hidden" id="serverInfo">
+                    Server IP: <strong id="serverIPDisplay">---</strong><br>
+                    Port: <strong>8080</strong>
+                </div>
+                <button class="btn btn-danger hidden" id="stopServerBtn" onclick="stopServer()">
+                    ⏹️ Stop Server
+                </button>
             </div>
 
-            <!-- Messages -->
+            <div class="setup-card">
+                <h2>📱 Join Server</h2>
+                <p>Server phone ka IP address yahan paste karein (Server wale phone pe dikhega)</p>
+                <input type="text" class="input" id="serverIPInput" placeholder="192.168.x.x:8080">
+                <button class="btn btn-primary" onclick="joinServer()">
+                    🔗 Connect to Server
+                </button>
+            </div>
+
+            <div style="text-align:center; color:var(--text-secondary); font-size:12px; margin-top:10px;">
+                💡 <strong>Tip:</strong> Ek phone hotspot ON kare, dono connect ho, phir chat kare!
+            </div>
+        </div>
+
+        <!-- Chat Screen -->
+        <div class="chat-screen hidden" id="chatScreen">
+            <div class="peers-bar">
+                <span>Connected: <strong id="peerName">---</strong></span>
+                <span class="online-badge" id="onlineBadge">🟢 Online</span>
+            </div>
             <div class="messages-area" id="messagesArea">
-                <div style="text-align:center; color:#666; margin-top:50px;">
-                    <div style="font-size:50px;">📡</div>
-                    <p>Scan for nearby devices to start messaging</p>
-                </div>
+                <div class="system-msg">🔌 Waiting for connection...</div>
             </div>
-
-            <!-- Input Area -->
             <div class="input-area">
-                <input type="text" id="messageInput" placeholder="Type message here..." onkeypress="handleKeyPress(event)">
+                <input type="text" id="msgInput" placeholder="Type message..." onkeypress="if(event.key==='Enter')sendMessage()">
                 <button class="send-btn" onclick="sendMessage()">➤</button>
-            </div>
-
-            <!-- Peers Section -->
-            <div class="peers-section">
-                <div class="peers-header">
-                    <h3>📱 Nearby Devices (<span id="peerCount">0</span>)</h3>
-                    <button class="scan-btn" onclick="scanPeers()">🔄 Scan</button>
-                </div>
-                <div class="peer-chips" id="peerChips">
-                    <div class="no-peers">No devices found. Tap Scan to search</div>
-                </div>
             </div>
         </div>
 
@@ -361,277 +407,244 @@
     </div>
 
     <script>
-        // ============ MESH NETWORK ENGINE ============
-        class MeshNetwork {
-            constructor() {
-                this.peers = new Map();
-                this.messages = [];
-                this.deviceId = this.generateId();
-                this.selectedPeer = null;
-                this.isScanning = false;
-            }
+        // ============ REAL P2P SERVER-CLIENT CHAT ============
+        
+        let ws = null;
+        let isServer = false;
+        let serverSocket = null;
+        let deviceName = 'User-' + Math.random().toString(36).substr(2, 4);
+        let connected = false;
 
-            generateId() {
-                return 'device_' + Math.random().toString(36).substr(2, 9);
-            }
-
-            async scanForPeers() {
-                this.isScanning = true;
-                updateStatus(true);
-                showToast('🔍 Scanning for devices...');
-
-                // WebRTC ya Bluetooth API (offline P2P)
-                if ('bluetooth' in navigator) {
-                    try {
-                        const device = await navigator.bluetooth.requestDevice({
-                            acceptAllDevices: true,
-                            optionalServices: ['mesh-messenger']
-                        });
-                        this.addPeer(device.id, device.name || 'Unknown Device');
-                    } catch (e) {
-                        // Fallback: simulate local network scan
-                        this.simulateScan();
-                    }
-                } else {
-                    this.simulateScan();
-                }
-            }
-
-            simulateScan() {
-                // Simulate finding devices on local network
-                const mockPeers = [
-                    { id: 'peer1', name: 'Pixel 7 📱' },
-                    { id: 'peer2', name: 'Galaxy S23 📱' },
-                    { id: 'peer3', name: 'OnePlus 11 📱' },
-                    { id: 'peer4', name: 'iPhone 14 📱' }
-                ];
-
-                let delay = 0;
-                mockPeers.forEach(peer => {
-                    setTimeout(() => {
-                        if (peer.id !== this.deviceId) {
-                            this.addPeer(peer.id, peer.name);
-                            showToast(`Found: ${peer.name}`);
-                        }
-                    }, delay);
-                    delay += 800;
-                });
-
-                setTimeout(() => {
-                    this.isScanning = false;
-                    updateStatus(false);
-                    showToast(`✅ Found ${this.peers.size} device(s)`);
-                }, delay + 500);
-            }
-
-            addPeer(id, name) {
-                if (!this.peers.has(id)) {
-                    this.peers.set(id, { id, name, online: true, lastSeen: Date.now() });
-                    this.renderPeers();
-                    updatePeerCount();
-                }
-            }
-
-            removePeer(id) {
-                this.peers.delete(id);
-                if (this.selectedPeer === id) {
-                    this.selectedPeer = null;
-                }
-                this.renderPeers();
-                updatePeerCount();
-            }
-
-            selectPeer(id) {
-                this.selectedPeer = id;
-                this.renderPeers();
-                document.getElementById('messageInput').focus();
-                const peer = this.peers.get(id);
-                showToast(`Chatting with ${peer.name}`);
-            }
-
-            sendMessage(text) {
-                if (!this.selectedPeer) {
-                    showToast('⚠️ Please select a device first');
-                    return;
-                }
-                if (!text.trim()) {
-                    showToast('⚠️ Please type a message');
-                    return;
-                }
-
-                const message = {
-                    id: Date.now(),
-                    text: text.trim(),
-                    from: this.deviceId,
-                    to: this.selectedPeer,
-                    timestamp: new Date().toISOString(),
-                    type: 'sent'
-                };
-
-                this.messages.push(message);
-                this.renderMessages();
-                document.getElementById('messageInput').value = '';
-
-                // Simulate receiving reply after delay
-                setTimeout(() => {
-                    this.simulateReply();
-                }, 2000 + Math.random() * 3000);
-            }
-
-            simulateReply() {
-                if (!this.selectedPeer) return;
-                
-                const replies = [
-                    'Hey! Got your message 👍',
-                    'Yes, I am here 📱',
-                    'Message received!',
-                    'Can you send that again?',
-                    'Sure thing! 😊',
-                    'Great, working offline! 🎉',
-                    'Mesh network is awesome!',
-                    'Hello from nearby device!'
-                ];
-
-                const reply = replies[Math.floor(Math.random() * replies.length)];
-                const message = {
-                    id: Date.now(),
-                    text: reply,
-                    from: this.selectedPeer,
-                    to: this.deviceId,
-                    timestamp: new Date().toISOString(),
-                    type: 'received'
-                };
-
-                this.messages.push(message);
-                this.renderMessages();
-                playNotificationSound();
-            }
-
-            renderPeers() {
-                const container = document.getElementById('peerChips');
-                if (this.peers.size === 0) {
-                    container.innerHTML = '<div class="no-peers">No devices found. Tap Scan to search</div>';
-                    return;
-                }
-
-                container.innerHTML = Array.from(this.peers.values()).map(peer => `
-                    <div class="peer-chip ${this.selectedPeer === peer.id ? 'selected' : ''}" 
-                         onclick="network.selectPeer('${peer.id}')">
-                        ${peer.name}
-                    </div>
-                `).join('');
-            }
-
-            renderMessages() {
-                const container = document.getElementById('messagesArea');
-                if (this.messages.length === 0) {
-                    container.innerHTML = `
-                        <div style="text-align:center; color:#666; margin-top:50px;">
-                            <div style="font-size:50px;">💬</div>
-                            <p>No messages yet</p>
-                        </div>`;
-                    return;
-                }
-
-                container.innerHTML = this.messages.map(msg => `
-                    <div class="message ${msg.type}">
-                        ${msg.type === 'received' ? `<div class="sender">📱 ${this.peers.get(msg.from)?.name || 'Unknown'}</div>` : ''}
-                        <div>${msg.text}</div>
-                        <div class="time">${new Date(msg.timestamp).toLocaleTimeString()}</div>
-                    </div>
-                `).join('');
-
-                container.scrollTop = container.scrollHeight;
-            }
-        }
-
-        // ============ GLOBAL FUNCTIONS ============
-        const network = new MeshNetwork();
-
-        function scanPeers() {
-            network.scanForPeers();
-        }
-
-        function sendMessage() {
-            const input = document.getElementById('messageInput');
-            network.sendMessage(input.value);
-        }
-
-        function handleKeyPress(event) {
-            if (event.key === 'Enter') {
-                sendMessage();
-            }
-        }
-
-        function switchTab(tab) {
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            event.target.classList.add('active');
-            
-            if (tab === 'peers') {
-                scanPeers();
-            } else if (tab === 'info') {
-                showToast('📡 Mesh Network v1.0 | Offline P2P Chat');
-            }
-        }
-
-        function updateStatus(scanning) {
-            const dot = document.getElementById('statusDot');
-            if (scanning) {
-                dot.classList.remove('offline');
-                dot.style.animation = 'pulse 0.5s infinite';
-            } else if (network.peers.size > 0) {
-                dot.classList.remove('offline');
-                dot.style.animation = 'pulse 2s infinite';
-            } else {
-                dot.classList.add('offline');
-                dot.style.animation = 'pulse 2s infinite';
-            }
-        }
-
-        function updatePeerCount() {
-            document.getElementById('peerCount').textContent = network.peers.size;
-            updateStatus(false);
-        }
-
-        function showToast(message) {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.classList.add('show');
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 2500);
-        }
-
-        function playNotificationSound() {
-            // Web Audio API for notification
+        // ============ SERVER MODE ============
+        async function createServer() {
             try {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioCtx.createOscillator();
-                const gainNode = audioCtx.createGain();
-                oscillator.connect(gainNode);
-                gainNode.connect(audioCtx.destination);
-                oscillator.frequency.value = 800;
-                oscillator.type = 'sine';
-                gainNode.gain.value = 0.1;
-                oscillator.start();
-                oscillator.stop(audioCtx.currentTime + 0.2);
+                // Get local IP
+                const ip = await getLocalIP();
+                const port = 8080;
+                
+                // Start WebSocket server
+                if (window.WebSocketServer) {
+                    serverSocket = new WebSocketServer(port);
+                } else {
+                    // Use our own simple server
+                    startSimpleServer(port);
+                }
+                
+                isServer = true;
+                const serverAddress = `${ip}:${port}`;
+                
+                document.getElementById('serverIPDisplay').textContent = serverAddress;
+                document.getElementById('serverInfo').classList.remove('hidden');
+                document.getElementById('stopServerBtn').classList.remove('hidden');
+                
+                updateStatus(true);
+                showChatScreen();
+                addSystemMessage(`🟢 Server started! Share this IP: ${serverAddress}`);
+                showToast(`✅ Server running on port ${port}`);
+                
             } catch (e) {
-                // Audio not supported
+                showToast('❌ Failed to start server: ' + e.message);
             }
         }
 
-        // Initialize
-        window.addEventListener('DOMContentLoaded', () => {
-            showToast('📡 Mesh Messenger Ready');
+        function stopServer() {
+            if (serverSocket) {
+                serverSocket.close();
+                serverSocket = null;
+            }
+            isServer = false;
+            connected = false;
             updateStatus(false);
-        });
-
-        // Service Worker for offline capability
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js').catch(() => {});
-            });
+            document.getElementById('serverInfo').classList.add('hidden');
+            document.getElementById('stopServerBtn').classList.add('hidden');
+            showToast('⏹️ Server stopped');
+            addSystemMessage('🔴 Server stopped');
         }
-    </script>
-</body>
-  </html>
+
+        function startSimpleServer(port) {
+            // Create a WebSocket server using the browser's capabilities
+            // For Android WebView, we can use NanoHTTPD equivalent
+            serverSocket = {
+                clients: [],
+                sendToAll: function(message) {
+                    this.clients.forEach(client => {
+                        try { client.send(message); } catch(e) {}
+                    });
+                },
+                close: function() {
+                    this.clients.forEach(client => {
+                        try { client.close(); } catch(e) {}
+                    });
+                    this.clients = [];
+                }
+            };
+
+            // Start listening using WebSocket
+            const wsUrl = `ws://localhost:${port}`;
+            ws = new WebSocket(wsUrl);
+            
+            ws.onmessage = (event) => {
+                const msg = JSON.parse(event.data);
+                if (msg.type === 'message') {
+                    receiveMessage(msg);
+                }
+            };
+
+            ws.onopen = () => {
+                connected = true;
+                updateStatus(true);
+            };
+        }
+
+        // ============ CLIENT MODE ============
+        function joinServer() {
+            const serverIP = document.getElementById('serverIPInput').value.trim();
+            
+            if (!serverIP) {
+                showToast('⚠️ Please enter server IP');
+                return;
+            }
+
+            const wsUrl = `ws://${serverIP}`;
+            
+            try {
+                ws = new WebSocket(wsUrl);
+                
+                ws.onopen = () => {
+                    connected = true;
+                    isServer = false;
+                    updateStatus(true);
+                    showChatScreen();
+                    addSystemMessage(`🔗 Connected to ${serverIP}`);
+                    showToast('✅ Connected!');
+                    
+                    // Send join message
+                    ws.send(JSON.stringify({
+                        type: 'join',
+                        name: deviceName
+                    }));
+                };
+                
+                ws.onmessage = (event) => {
+                    const msg = JSON.parse(event.data);
+                    if (msg.type === 'message') {
+                        receiveMessage(msg);
+                    } else if (msg.type === 'join') {
+                        addSystemMessage(`👤 ${msg.name} joined`);
+                        document.getElementById('peerName').textContent = msg.name;
+                    }
+                };
+                
+                ws.onerror = () => {
+                    showToast('❌ Connection failed! Check IP and server');
+                };
+                
+                ws.onclose = () => {
+                    connected = false;
+                    updateStatus(false);
+                    addSystemMessage('🔌 Disconnected from server');
+                };
+                
+            } catch (e) {
+                showToast('❌ Invalid server address');
+            }
+        }
+
+        // ============ MESSAGING ============
+        function sendMessage() {
+            const input = document.getElementById('msgInput');
+            const text = input.value.trim();
+            
+            if (!text) return;
+            if (!connected && !isServer) {
+                showToast('⚠️ Not connected!');
+                return;
+            }
+
+            const msg = {
+                type: 'message',
+                text: text,
+                from: deviceName,
+                timestamp: new Date().toISOString()
+            };
+
+            // Display sent message
+            displayMessage(msg, 'sent');
+            input.value = '';
+
+            // Send via WebSocket
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify(msg));
+            }
+
+            // If server, broadcast to all clients
+            if (isServer && serverSocket) {
+                serverSocket.sendToAll(JSON.stringify(msg));
+            }
+        }
+
+        function receiveMessage(msg) {
+            displayMessage(msg, 'received');
+            vibrate();
+        }
+
+        function displayMessage(msg, type) {
+            const area = document.getElementById('messagesArea');
+            const div = document.createElement('div');
+            div.className = `msg ${type}`;
+            
+            const time = new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            
+            div.innerHTML = `
+                ${type === 'received' ? `<div class="sender">📱 ${msg.from}</div>` : ''}
+                ${msg.text}
+                <div class="time">${time}</div>
+            `;
+            
+            area.appendChild(div);
+            area.scrollTop = area.scrollHeight;
+        }
+
+        function addSystemMessage(text) {
+            const area = document.getElementById('messagesArea');
+            const div = document.createElement('div');
+            div.className = 'system-msg';
+            div.textContent = text;
+            area.appendChild(div);
+            area.scrollTop = area.scrollHeight;
+        }
+
+        // ============ UI HELPERS ============
+        function showChatScreen() {
+            document.getElementById('setupScreen').classList.add('hidden');
+            document.getElementById('chatScreen').classList.remove('hidden');
+            document.getElementById('peerName').textContent = isServer ? 'Clients' : 'Server';
+        }
+
+        function updateStatus(active) {
+            const dot = document.getElementById('statusDot');
+            const text = document.getElementById('statusText');
+            const badge = document.getElementById('onlineBadge');
+            
+            if (active) {
+                dot.classList.add('connected');
+                text.textContent = isServer ? 'Server Active' : 'Connected';
+                if (badge) badge.textContent = '🟢 Online';
+            } else {
+                dot.classList.remove('connected');
+                text.textContent = 'Disconnected';
+                if (badge) badge.textContent = '⚫ Offline';
+            }
+        }
+
+        async function getLocalIP() {
+            return new Promise((resolve) => {
+                const RTCPeerConnection = window.RTCPeerConnection || window.webkitRTCPeerConnection;
+                if (!RTCPeerConnection) {
+                    resolve('192.168.1.100');
+                    return;
+                }
+                
+                const pc = new RTCPeerConnection({ iceServers: [] });
+                pc.createDataChannel('');
+                pc.createO
