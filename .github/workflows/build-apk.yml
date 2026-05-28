@@ -40,9 +40,8 @@ jobs:
         
         cp index.html app/src/main/assets/
     
-    - name: Create Launcher Icon (XML Adaptive Icon)
+    - name: Create Launcher Icon
       run: |
-        # Create simple XML drawable as icon
         cat > app/src/main/res/drawable/ic_launcher_foreground.xml << 'ICONEOF'
         <?xml version="1.0" encoding="utf-8"?>
         <vector xmlns:android="http://schemas.android.com/apk/res/android"
@@ -74,7 +73,6 @@ jobs:
         </vector>
         BACKEOF
         
-        # Create ic_launcher.xml (adaptive icon)
         mkdir -p app/src/main/res/mipmap-anydpi-v26
         cat > app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml << 'ADAPTEOF'
         <?xml version="1.0" encoding="utf-8"?>
@@ -83,16 +81,8 @@ jobs:
             <foreground android:drawable="@drawable/ic_launcher_foreground"/>
         </adaptive-icon>
         ADAPTEOF
-        
-        # For older Android, create simple colors as placeholder icons
-        cat > app/src/main/res/values/ic_launcher.xml << 'COLORSEOF'
-        <?xml version="1.0" encoding="utf-8"?>
-        <resources>
-            <color name="ic_launcher_background">#1a1a2e</color>
-        </resources>
-        COLORSEOF
     
-    - name: Create AndroidManifest.xml (Fixed - No package attribute)
+    - name: Create AndroidManifest.xml
       run: |
         cat > app/src/main/AndroidManifest.xml << 'MANIFESTEOF'
         <?xml version="1.0" encoding="utf-8"?>
@@ -105,9 +95,6 @@ jobs:
             <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
             <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
             <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-            <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-            <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
-            <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES" />
             
             <application
                 android:allowBackup="true"
@@ -215,14 +202,12 @@ jobs:
     
     - name: Create Gradle Build Files
       run: |
-        # Root build.gradle
         cat > build.gradle << 'ROOTGRADLEEOF'
         plugins {
             id 'com.android.application' version '8.2.2' apply false
         }
         ROOTGRADLEEOF
         
-        # App build.gradle
         cat > app/build.gradle << 'APPGRADLEEOF'
         plugins {
             id 'com.android.application'
@@ -259,7 +244,6 @@ jobs:
         }
         APPGRADLEEOF
         
-        # settings.gradle
         cat > settings.gradle << 'SETTINGSEOF'
         pluginManagement {
             repositories {
@@ -287,7 +271,6 @@ jobs:
         include ':app'
         SETTINGSEOF
         
-        # gradle.properties
         cat > gradle.properties << 'PROPEOF'
         org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
         android.useAndroidX=true
@@ -295,12 +278,10 @@ jobs:
         android.nonTransitiveRClass=true
         PROPEOF
         
-        # proguard-rules.pro
         cat > app/proguard-rules.pro << 'PROGUARDEOF'
         -keep class com.meshmessenger.** { *; }
         PROGUARDEOF
         
-        # gradle-wrapper.properties
         cat > gradle/wrapper/gradle-wrapper.properties << 'WRAPPEREOF'
         distributionBase=GRADLE_USER_HOME
         distributionPath=wrapper/dists
@@ -317,57 +298,34 @@ jobs:
         wget https://github.com/gradle/gradle/raw/master/gradle/wrapper/gradle-wrapper.jar -O gradle/wrapper/gradle-wrapper.jar
     
     - name: Build Debug APK
-      run: |
-        ./gradlew assembleDebug --no-daemon
+      run: ./gradlew assembleDebug --no-daemon
     
-    - name: Build Release APK
-      run: |
-        ./gradlew assembleRelease --no-daemon
+    - name: Build Release APK  
+      run: ./gradlew assembleRelease --no-daemon
     
     - name: Upload Debug APK
       uses: actions/upload-artifact@v4
       with:
-        name: MeshMessenger-Debug
+        name: MeshMessenger-Debug-APK
         path: app/build/outputs/apk/debug/app-debug.apk
     
     - name: Upload Release APK
       uses: actions/upload-artifact@v4
       with:
-        name: MeshMessenger-Release
+        name: MeshMessenger-Release-APK
         path: app/build/outputs/apk/release/app-release-unsigned.apk
     
-    - name: Create GitHub Release
-      if: github.ref == 'refs/heads/main' && success()
-      uses: softprops/action-gh-release@v2
-      with:
-        tag_name: v1.0.${{ github.run_number }}
-        name: "Mesh Messenger v1.0.${{ github.run_number }}"
-        body: |
-          ## 📡 Mesh Messenger - Offline P2P Chat
-          
-          ### ✨ Features:
-          - 🚫 Works without internet
-          - 📱 P2P mesh network
-          - 🔍 Auto-discover devices
-          - 💬 Real-time messaging
-          
-          ### 📲 How to Install:
-          1. Download APK file
-          2. Enable "Install from unknown sources"
-          3. Install and open app
-          4. Grant required permissions
-          5. Start chatting with nearby devices!
-          
-          ### 🔧 Build Info:
-          - Build: #${{ github.run_number }}
-          - Gradle: 8.5
-          - Min SDK: 21 (Android 5.0)
-          
-          ### 📝 Notes:
-          - Both phones need the app installed
-          - Keep Bluetooth & Location ON
-          - Works without internet connection
-        files: |
-          app/build/outputs/apk/debug/app-debug.apk
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Show Download Info
+      run: |
+        echo "========================================="
+        echo "✅ BUILD SUCCESSFUL!"
+        echo "========================================="
+        echo "📱 APK ready for download!"
+        echo ""
+        echo "Download from 'Artifacts' section:"
+        echo "1. MeshMessenger-Debug-APK"
+        echo "2. MeshMessenger-Release-APK"
+        echo ""
+        echo "Or use direct link:"
+        echo "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        echo "========================================="
