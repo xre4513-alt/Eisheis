@@ -27,7 +27,6 @@ jobs:
     
     - name: Create Project Structure
       run: |
-        # Create directories
         mkdir -p app/src/main/java/com/meshmessenger
         mkdir -p app/src/main/res/values
         mkdir -p app/src/main/res/layout
@@ -36,7 +35,6 @@ jobs:
         mkdir -p app/src/main/assets
         mkdir -p gradle/wrapper
         
-        # Copy HTML to assets
         cp index.html app/src/main/assets/
     
     - name: Create AndroidManifest.xml
@@ -135,7 +133,6 @@ jobs:
     
     - name: Create Resource Files
       run: |
-        # styles.xml
         cat > app/src/main/res/values/styles.xml << 'STYLEEOF'
         <?xml version="1.0" encoding="utf-8"?>
         <resources>
@@ -146,7 +143,6 @@ jobs:
         </resources>
         STYLEEOF
         
-        # colors.xml
         cat > app/src/main/res/values/colors.xml << 'COLOREOF'
         <?xml version="1.0" encoding="utf-8"?>
         <resources>
@@ -156,7 +152,6 @@ jobs:
         </resources>
         COLOREOF
         
-        # strings.xml
         cat > app/src/main/res/values/strings.xml << 'STRINGEOF'
         <?xml version="1.0" encoding="utf-8"?>
         <resources>
@@ -164,29 +159,12 @@ jobs:
         </resources>
         STRINGEOF
     
-    - name: Create Gradle Build Files
+    - name: Create Gradle Build Files (Gradle 9.x Compatible)
       run: |
-        # Root build.gradle
+        # Root build.gradle - Gradle 9.x compatible
         cat > build.gradle << 'ROOTGRADLEEOF'
-        buildscript {
-            repositories {
-                google()
-                mavenCentral()
-            }
-            dependencies {
-                classpath 'com.android.tools.build:gradle:8.2.2'
-            }
-        }
-        
-        allprojects {
-            repositories {
-                google()
-                mavenCentral()
-            }
-        }
-        
-        tasks.register('clean', Delete) {
-            delete rootProject.layout.buildDirectory
+        plugins {
+            id 'com.android.application' version '8.2.2' apply false
         }
         ROOTGRADLEEOF
         
@@ -206,8 +184,6 @@ jobs:
                 targetSdk 34
                 versionCode 1
                 versionName "1.0"
-                
-                testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
             }
             
             buildTypes {
@@ -226,19 +202,25 @@ jobs:
         dependencies {
             implementation 'androidx.appcompat:appcompat:1.6.1'
             implementation 'com.google.android.material:material:1.11.0'
-            implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
         }
         APPGRADLEEOF
         
-        # settings.gradle
+        # settings.gradle - Gradle 9.x compatible
         cat > settings.gradle << 'SETTINGSEOF'
         pluginManagement {
             repositories {
-                google()
+                google {
+                    content {
+                        includeGroupByRegex("com\\.android.*")
+                        includeGroupByRegex("com\\.google.*")
+                        includeGroupByRegex("androidx.*")
+                    }
+                }
                 mavenCentral()
                 gradlePluginPortal()
             }
         }
+        
         dependencyResolutionManagement {
             repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
             repositories {
@@ -262,47 +244,47 @@ jobs:
         # proguard-rules.pro
         cat > app/proguard-rules.pro << 'PROGUARDEOF'
         -keep class com.meshmessenger.** { *; }
-        -keepattributes *Annotation*
         PROGUARDEOF
+        
+        # gradle-wrapper.properties
+        cat > gradle/wrapper/gradle-wrapper.properties << 'WRAPPEREOF'
+        distributionBase=GRADLE_USER_HOME
+        distributionPath=wrapper/dists
+        distributionUrl=https\://services.gradle.org/distributions/gradle-8.5-bin.zip
+        zipStoreBase=GRADLE_USER_HOME
+        zipStorePath=wrapper/dists
+        WRAPPEREOF
     
-    - name: Generate Gradle Wrapper
+    - name: Setup Gradle Wrapper
       run: |
-        # Download gradle wrapper
-        gradle wrapper --gradle-version 8.5
-        
-        # Verify wrapper exists
-        ls -la gradlew
-        
-        # Make executable
+        # Download gradle wrapper jar
+        wget https://raw.githubusercontent.com/gradle/gradle/master/gradlew -O gradlew
+        wget https://raw.githubusercontent.com/gradle/gradle/master/gradlew.bat -O gradlew.bat
         chmod +x gradlew
+        
+        # Download wrapper jar
+        mkdir -p gradle/wrapper
+        wget https://github.com/gradle/gradle/raw/master/gradle/wrapper/gradle-wrapper.jar -O gradle/wrapper/gradle-wrapper.jar
     
     - name: Build Debug APK
       run: |
-        ./gradlew assembleDebug
+        ./gradlew assembleDebug --no-daemon
     
     - name: Build Release APK
       run: |
-        ./gradlew assembleRelease
-    
-    - name: List APK Files
-      run: |
-        echo "=== Debug APKs ==="
-        find app/build -name "*.apk" -type f
-        echo ""
-        echo "=== File Sizes ==="
-        ls -lh app/build/outputs/apk/debug/
+        ./gradlew assembleRelease --no-daemon
     
     - name: Upload Debug APK
       uses: actions/upload-artifact@v4
       with:
-        name: MeshMessenger-Debug-APK
+        name: MeshMessenger-Debug
         path: app/build/outputs/apk/debug/app-debug.apk
     
     - name: Upload Release APK
       uses: actions/upload-artifact@v4
       with:
-        name: MeshMessenger-Release-APK
-        path: app/build/outputs/apk/release/app-release.apk
+        name: MeshMessenger-Release
+        path: app/build/outputs/apk/release/app-release-unsigned.apk
     
     - name: Create GitHub Release
       if: github.ref == 'refs/heads/main' && success()
@@ -311,44 +293,25 @@ jobs:
         tag_name: v1.0.${{ github.run_number }}
         name: "Mesh Messenger v1.0.${{ github.run_number }}"
         body: |
-          ## 📡 Mesh Messenger - Offline P2P Chat App
+          ## 📡 Mesh Messenger - Offline P2P Chat
           
           ### ✨ Features:
-          - 🚫 Works completely offline
-          - 📱 P2P mesh network communication
-          - 🔍 Auto-discover nearby devices
+          - 🚫 Works without internet
+          - 📱 P2P mesh network
+          - 🔍 Auto-discover devices
           - 💬 Real-time messaging
-          - 🎨 Beautiful Material Design UI
-          - 📶 Uses Bluetooth & WiFi Direct
           
           ### 📲 Installation:
-          1. Download APK file
-          2. Enable "Install from unknown sources"
-          3. Install and open app
-          4. Grant required permissions
+          1. Download APK
+          2. Enable "Unknown sources"
+          3. Install & open
+          4. Grant permissions
           5. Start chatting!
           
-          ### 🔧 Requirements:
-          - Android 5.0+
-          - Bluetooth & Location enabled
-          
-          ### 🏗️ Build Information:
-          - Build Number: ${{ github.run_number }}
-          - Commit: ${{ github.sha }}
+          ### Build Info:
+          - Build: #${{ github.run_number }}
+          - Gradle: 8.5
         files: |
           app/build/outputs/apk/debug/app-debug.apk
-          app/build/outputs/apk/release/app-release.apk
-        draft: false
-        prerelease: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    
-    - name: Build Summary
-      run: |
-        echo "========================================="
-        echo "🎉 Build Completed Successfully!"
-        echo "========================================="
-        echo "📱 Debug APK: app/build/outputs/apk/debug/"
-        echo "📱 Release APK: app/build/outputs/apk/release/"
-        echo "📦 Check 'Artifacts' section to download"
-        echo "========================================="
