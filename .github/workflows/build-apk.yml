@@ -6,7 +6,7 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  workflow_dispatch:  # Manual trigger
+  workflow_dispatch:
 
 jobs:
   build:
@@ -22,25 +22,26 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
     
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
     
-    - name: Create Android Project Structure
+    - name: Create Project Structure
       run: |
+        # Create directories
         mkdir -p app/src/main/java/com/meshmessenger
         mkdir -p app/src/main/res/values
         mkdir -p app/src/main/res/layout
-        mkdir -p app/src/main/assets
-        mkdir -p app/src/main/res/mipmap-hdpi
         mkdir -p app/src/main/res/drawable
+        mkdir -p app/src/main/res/mipmap-hdpi
+        mkdir -p app/src/main/assets
+        mkdir -p gradle/wrapper
         
-        # Copy web files to assets
+        # Copy HTML to assets
         cp index.html app/src/main/assets/
-        
-        # Create AndroidManifest.xml
-        cat > app/src/main/AndroidManifest.xml << 'EOF'
+    
+    - name: Create AndroidManifest.xml
+      run: |
+        cat > app/src/main/AndroidManifest.xml << 'MANIFESTEOF'
         <?xml version="1.0" encoding="utf-8"?>
         <manifest xmlns:android="http://schemas.android.com/apk/res/android"
             package="com.meshmessenger">
@@ -52,6 +53,9 @@ jobs:
             <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
             <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
             <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+            <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+            <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+            <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES" />
             
             <application
                 android:allowBackup="true"
@@ -64,7 +68,8 @@ jobs:
                 <activity
                     android:name=".MainActivity"
                     android:exported="true"
-                    android:configChanges="orientation|screenSize">
+                    android:configChanges="orientation|screenSize"
+                    android:screenOrientation="portrait">
                     <intent-filter>
                         <action android:name="android.intent.action.MAIN" />
                         <category android:name="android.intent.category.LAUNCHER" />
@@ -72,10 +77,11 @@ jobs:
                 </activity>
             </application>
         </manifest>
-        EOF
-        
-        # Create MainActivity.java
-        cat > app/src/main/java/com/meshmessenger/MainActivity.java << 'EOF'
+        MANIFESTEOF
+    
+    - name: Create MainActivity.java
+      run: |
+        cat > app/src/main/java/com/meshmessenger/MainActivity.java << 'JAVAEOF'
         package com.meshmessenger;
         
         import android.app.Activity;
@@ -85,6 +91,7 @@ jobs:
         import android.webkit.WebChromeClient;
         import android.webkit.WebSettings;
         import android.view.WindowManager;
+        import android.view.KeyEvent;
         
         public class MainActivity extends Activity {
             private WebView webView;
@@ -103,6 +110,9 @@ jobs:
                 webSettings.setAllowContentAccess(true);
                 webSettings.setGeolocationEnabled(true);
                 webSettings.setDatabaseEnabled(true);
+                webSettings.setMediaPlaybackRequiresUserGesture(false);
+                webSettings.setLoadWithOverviewMode(true);
+                webSettings.setUseWideViewPort(true);
                 
                 webView.setWebViewClient(new WebViewClient());
                 webView.setWebChromeClient(new WebChromeClient());
@@ -113,25 +123,58 @@ jobs:
             }
             
             @Override
-            public void onBackPressed() {
-                if (webView.canGoBack()) {
+            public boolean onKeyDown(int keyCode, KeyEvent event) {
+                if (keyCode == KeyEvent.KEYCODE_BACK && webView.canGoBack()) {
                     webView.goBack();
-                } else {
-                    super.onBackPressed();
+                    return true;
                 }
+                return super.onKeyDown(keyCode, event);
             }
         }
-        EOF
+        JAVAEOF
+    
+    - name: Create Resource Files
+      run: |
+        # styles.xml
+        cat > app/src/main/res/values/styles.xml << 'STYLEEOF'
+        <?xml version="1.0" encoding="utf-8"?>
+        <resources>
+            <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+                <item name="android:windowFullscreen">true</item>
+                <item name="android:statusBarColor">@android:color/transparent</item>
+            </style>
+        </resources>
+        STYLEEOF
         
-        # Create build.gradle
-        cat > build.gradle << 'EOF'
+        # colors.xml
+        cat > app/src/main/res/values/colors.xml << 'COLOREOF'
+        <?xml version="1.0" encoding="utf-8"?>
+        <resources>
+            <color name="primary">#6C63FF</color>
+            <color name="secondary">#FF6584</color>
+            <color name="dark">#1a1a2e</color>
+        </resources>
+        COLOREOF
+        
+        # strings.xml
+        cat > app/src/main/res/values/strings.xml << 'STRINGEOF'
+        <?xml version="1.0" encoding="utf-8"?>
+        <resources>
+            <string name="app_name">Mesh Messenger</string>
+        </resources>
+        STRINGEOF
+    
+    - name: Create Gradle Build Files
+      run: |
+        # Root build.gradle
+        cat > build.gradle << 'ROOTGRADLEEOF'
         buildscript {
             repositories {
                 google()
                 mavenCentral()
             }
             dependencies {
-                classpath 'com.android.tools.build:gradle:8.2.0'
+                classpath 'com.android.tools.build:gradle:8.2.2'
             }
         }
         
@@ -141,11 +184,17 @@ jobs:
                 mavenCentral()
             }
         }
-        EOF
         
-        # Create app/build.gradle
-        cat > app/build.gradle << 'EOF'
-        apply plugin: 'com.android.application'
+        tasks.register('clean', Delete) {
+            delete rootProject.layout.buildDirectory
+        }
+        ROOTGRADLEEOF
+        
+        # App build.gradle
+        cat > app/build.gradle << 'APPGRADLEEOF'
+        plugins {
+            id 'com.android.application'
+        }
         
         android {
             namespace 'com.meshmessenger'
@@ -157,12 +206,14 @@ jobs:
                 targetSdk 34
                 versionCode 1
                 versionName "1.0"
+                
+                testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
             }
             
             buildTypes {
                 release {
-                    minifyEnabled true
-                    proguardFiles getDefaultProguardFile('proguard-android-optimize.txt')
+                    minifyEnabled false
+                    proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
                 }
             }
             
@@ -174,66 +225,130 @@ jobs:
         
         dependencies {
             implementation 'androidx.appcompat:appcompat:1.6.1'
+            implementation 'com.google.android.material:material:1.11.0'
+            implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
         }
-        EOF
+        APPGRADLEEOF
         
-        # Create settings.gradle
-        cat > settings.gradle << 'EOF'
+        # settings.gradle
+        cat > settings.gradle << 'SETTINGSEOF'
+        pluginManagement {
+            repositories {
+                google()
+                mavenCentral()
+                gradlePluginPortal()
+            }
+        }
+        dependencyResolutionManagement {
+            repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+            repositories {
+                google()
+                mavenCentral()
+            }
+        }
+        
         rootProject.name = "MeshMessenger"
         include ':app'
-        EOF
+        SETTINGSEOF
         
-        # Create gradle.properties
-        cat > gradle.properties << 'EOF'
+        # gradle.properties
+        cat > gradle.properties << 'PROPEOF'
+        org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
         android.useAndroidX=true
         android.enableJetifier=true
-        org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
-        EOF
+        android.nonTransitiveRClass=true
+        PROPEOF
         
-        # Create styles.xml
-        cat > app/src/main/res/values/styles.xml << 'EOF'
-        <?xml version="1.0" encoding="utf-8"?>
-        <resources>
-            <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
-                <item name="android:windowFullscreen">true</item>
-            </style>
-        </resources>
-        EOF
+        # proguard-rules.pro
+        cat > app/proguard-rules.pro << 'PROGUARDEOF'
+        -keep class com.meshmessenger.** { *; }
+        -keepattributes *Annotation*
+        PROGUARDEOF
     
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
-    
-    - name: Build APK
+    - name: Generate Gradle Wrapper
       run: |
-        chmod +x gradlew || true
+        # Download gradle wrapper
+        gradle wrapper --gradle-version 8.5
+        
+        # Verify wrapper exists
+        ls -la gradlew
+        
+        # Make executable
+        chmod +x gradlew
+    
+    - name: Build Debug APK
+      run: |
+        ./gradlew assembleDebug
+    
+    - name: Build Release APK
+      run: |
         ./gradlew assembleRelease
     
-    - name: Upload APK
+    - name: List APK Files
+      run: |
+        echo "=== Debug APKs ==="
+        find app/build -name "*.apk" -type f
+        echo ""
+        echo "=== File Sizes ==="
+        ls -lh app/build/outputs/apk/debug/
+    
+    - name: Upload Debug APK
       uses: actions/upload-artifact@v4
       with:
-        name: MeshMessenger-APK
+        name: MeshMessenger-Debug-APK
+        path: app/build/outputs/apk/debug/app-debug.apk
+    
+    - name: Upload Release APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: MeshMessenger-Release-APK
         path: app/build/outputs/apk/release/app-release.apk
     
-    - name: Create Release
-      if: github.ref == 'refs/heads/main'
+    - name: Create GitHub Release
+      if: github.ref == 'refs/heads/main' && success()
       uses: softprops/action-gh-release@v2
       with:
         tag_name: v1.0.${{ github.run_number }}
-        name: Mesh Messenger v1.0.${{ github.run_number }}
-        files: app/build/outputs/apk/release/app-release.apk
+        name: "Mesh Messenger v1.0.${{ github.run_number }}"
         body: |
           ## 📡 Mesh Messenger - Offline P2P Chat App
           
-          ### Features:
-          - 🚫 Works without internet
-          - 📱 Mesh network communication
+          ### ✨ Features:
+          - 🚫 Works completely offline
+          - 📱 P2P mesh network communication
           - 🔍 Auto-discover nearby devices
           - 💬 Real-time messaging
+          - 🎨 Beautiful Material Design UI
+          - 📶 Uses Bluetooth & WiFi Direct
           
-          ### How to use:
-          1. Install APK on both devices
-          2. Enable Bluetooth & Location
-          3. Open app and scan for devices
-          4. Start chatting!
+          ### 📲 Installation:
+          1. Download APK file
+          2. Enable "Install from unknown sources"
+          3. Install and open app
+          4. Grant required permissions
+          5. Start chatting!
+          
+          ### 🔧 Requirements:
+          - Android 5.0+
+          - Bluetooth & Location enabled
+          
+          ### 🏗️ Build Information:
+          - Build Number: ${{ github.run_number }}
+          - Commit: ${{ github.sha }}
+        files: |
+          app/build/outputs/apk/debug/app-debug.apk
+          app/build/outputs/apk/release/app-release.apk
+        draft: false
+        prerelease: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Build Summary
+      run: |
+        echo "========================================="
+        echo "🎉 Build Completed Successfully!"
+        echo "========================================="
+        echo "📱 Debug APK: app/build/outputs/apk/debug/"
+        echo "📱 Release APK: app/build/outputs/apk/release/"
+        echo "📦 Check 'Artifacts' section to download"
+        echo "========================================="
